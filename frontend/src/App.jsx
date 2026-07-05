@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 
-// Default API URL - uses VITE_API_URL env var in production (set in Render frontend settings)
-const DEFAULT_API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+// Default API URL - uses VITE_API_URL env var in production, falls back to Railway backend URL
+const DEFAULT_API_URL = import.meta.env.VITE_API_URL || 'https://br-auth-backend-production.up.railway.app';
 
 export default function App() {
   const [apiUrl, setApiUrl] = useState(() => localStorage.getItem('api_url') || DEFAULT_API_URL);
