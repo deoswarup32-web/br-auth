@@ -276,6 +276,28 @@ router.post('/apps', async (req, res) => {
   }
 });
 
+// Delete an application (preserving reseller accounts, credit allocations, and keys/users)
+router.delete('/app/:id', async (req, res) => {
+  const { id } = req.params;
+  try {
+    const app = await db.apps.findOne({ id });
+    if (!app) {
+      return res.status(404).json({ success: false, message: 'Application not found' });
+    }
+
+    if (req.user.role !== 'admin' && app.sellerUsername !== req.user.username) {
+      return res.status(403).json({ success: false, message: 'Access denied: You do not own this application' });
+    }
+
+    // Delete only the application registry record.
+    // All reseller credits, user logs, and key databases remain untouched and preserved.
+    await db.apps.delete({ id });
+    res.json({ success: true, message: 'Application deleted successfully. Resellers, credits, and keys have been preserved.' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
 // Reseller Credits Routes
 router.post('/reseller-credits', async (req, res) => {
   const { resellerUsername, appId, credits } = req.body;

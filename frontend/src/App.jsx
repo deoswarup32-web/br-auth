@@ -385,6 +385,22 @@ export default function App() {
     finally { setLoading(false); }
   };
 
+  const handleDeleteApp = async (id, name) => {
+    if (!window.confirm(`Are you sure you want to delete the application "${name}"? This registry record will be removed. All resellers, key allocations, and user logins will remain active and untouched.`)) return;
+    setLoading(true);
+    try {
+      const data = await apiFetch(`/api/seller/app/${id}`, {
+        method: 'DELETE'
+      });
+      if (data.success) {
+        showToast(`Successfully deleted application "${name}"`);
+        fetchDashboardData();
+      }
+    } catch (err) {}
+    finally { setLoading(false); }
+  };
+
+
   const handleAssignCredits = async (e) => {
     e.preventDefault();
     if (!creditReseller || !creditApp || creditAmount === undefined) return;
@@ -1671,6 +1687,7 @@ public class Main {
                             <th>Description</th>
                             <th>Application ID</th>
                             <th>Created At</th>
+                            <th style={{ textAlign: 'right' }}>Actions</th>
                           </tr>
                         </thead>
                         <tbody>
@@ -1680,11 +1697,37 @@ public class Main {
                               <td>{app.description || '-'}</td>
                               <td style={{ fontFamily: 'monospace', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>{app.id}</td>
                               <td>{new Date(app.createdAt).toLocaleDateString()}</td>
+                              <td style={{ textAlign: 'right' }}>
+                                <button 
+                                  onClick={() => handleDeleteApp(app.id, app.name)}
+                                  className="btn-action btn-action-delete"
+                                  style={{
+                                    background: 'rgba(255, 75, 75, 0.1)',
+                                    color: 'rgb(255, 75, 75)',
+                                    border: '1px solid rgba(255, 75, 75, 0.2)',
+                                    padding: '6px 12px',
+                                    borderRadius: '6px',
+                                    cursor: 'pointer',
+                                    fontSize: '0.8rem',
+                                    transition: 'all 0.2s'
+                                  }}
+                                  onMouseOver={(e) => {
+                                    e.currentTarget.style.background = 'rgba(255, 75, 75, 0.2)';
+                                    e.currentTarget.style.boxShadow = '0 0 10px rgba(255, 75, 75, 0.2)';
+                                  }}
+                                  onMouseOut={(e) => {
+                                    e.currentTarget.style.background = 'rgba(255, 75, 75, 0.1)';
+                                    e.currentTarget.style.boxShadow = 'none';
+                                  }}
+                                >
+                                  Delete
+                                </button>
+                              </td>
                             </tr>
                           ))}
                           {appsList.length === 0 && (
                             <tr>
-                              <td colSpan="4" style={{ textAlign: 'center', color: 'var(--text-muted)' }}>No applications created yet.</td>
+                              <td colSpan="5" style={{ textAlign: 'center', color: 'var(--text-muted)' }}>No applications created yet.</td>
                             </tr>
                           )}
                         </tbody>
