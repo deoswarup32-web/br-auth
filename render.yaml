@@ -12,6 +12,8 @@ services:
         generateValue: true
       - key: PORT
         value: 5000
+      - key: NODE_VERSION
+        value: 20
 
   # 2. Frontend Static Site (Vite React App)
   - type: web
@@ -21,6 +23,14 @@ services:
     rootDir: frontend
     buildCommand: npm install && npm run build
     publishDir: dist
+    envVars:
+      - key: NODE_VERSION
+        value: 20
+      - key: VITE_API_URL
+        fromService:
+          type: web
+          name: br-auth-backend
+          envVarKey: RENDER_EXTERNAL_URL
     headers:
       - path: /*
         name: Cache-Control
