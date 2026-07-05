@@ -1,0 +1,32 @@
+services:
+  # 1. Backend Web Service (Node.js API)
+  - type: web
+    name: br-auth-backend
+    env: node
+    plan: free
+    rootDir: backend
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: JWT_SECRET
+        generateValue: true
+      - key: PORT
+        value: 5000
+
+  # 2. Frontend Static Site (Vite React App)
+  - type: web
+    name: br-auth-frontend
+    env: static
+    plan: free
+    rootDir: frontend
+    buildCommand: npm install && npm run build
+    publishDir: dist
+    headers:
+      - path: /*
+        name: Cache-Control
+        value: no-store
+    routes:
+      # Redirect all routes to index.html for SPA routing fallback
+      - type: rewrite
+        source: /*
+        destination: /index.html
