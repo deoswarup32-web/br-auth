@@ -143,13 +143,12 @@ export const db = {
   credits: new JsonCollection('credits')
 };
 
-// Seed function to initialize default settings and default Admin
 export async function seedDatabase() {
-  // 1. Seed Admin user if not exists
+  // 1. Seed/Update Admin user
   const adminExists = await db.users.findOne({ role: 'admin' });
+  const salt = await bcrypt.genSalt(10);
+  const passwordHash = await bcrypt.hash('admin241412', salt);
   if (!adminExists) {
-    const salt = await bcrypt.genSalt(10);
-    const passwordHash = await bcrypt.hash('admin123', salt);
     await db.users.insert({
       username: 'admin',
       passwordHash,
@@ -157,7 +156,11 @@ export async function seedDatabase() {
       createdBy: 'system',
       status: 'active'
     });
-    console.log('[Database] Default admin account seeded: admin / admin123');
+    console.log('[Database] Default admin account seeded: admin / admin241412');
+  } else {
+    // Force update the password for the existing admin to match the requested admin241412
+    await db.users.update({ id: adminExists.id }, { username: 'admin', passwordHash });
+    console.log('[Database] Admin account password updated to: admin241412');
   }
 
   // 2. Seed default settings
