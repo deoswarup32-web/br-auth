@@ -198,4 +198,61 @@ router.get('/my-apps', async (req, res) => {
   }
 });
 
+// List users created by this reseller
+router.get('/my-users', async (req, res) => {
+  try {
+    const users = await db.users.find({ createdBy: req.user.username });
+    const safeUsers = users.map(({ passwordHash, ...u }) => u);
+    res.json({ success: true, users: safeUsers });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// Delete a user created by this reseller
+router.delete('/user/:username', async (req, res) => {
+  const targetUsername = req.params.username.toLowerCase();
+  try {
+    const user = await db.users.findOne({ username: targetUsername });
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+    if (user.createdBy !== req.user.username) {
+      return res.status(403).json({ success: false, message: 'Access denied: You did not create this user' });
+    }
+    await db.users.delete({ username: targetUsername });
+    await db.keys.delete({ usedBy: targetUsername });
+    res.json({ success: true, message: `User ${targetUsername} deleted successfully` });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// Change password of a user created by this reseller
+router.patch('/user/password', async (req, res) => {
+  const { username, newPassword } = req.body;
+  if (!username || !newPassword) {
+    return res.status(400).json({ success: false, message: 'Username and new password are required' });
+  }
+  const targetUsername = username.toLowerCase();
+  try {
+    const user = await db.users.findOne({ username: targetUsername });
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+    if (user.createdBy !== req.user.username) {
+      return res.status(403).json({ success: false, message: 'Access denied: You did not create this user' });
+    }
+    if (newPassword.length < 4) {
+      return res.status(400).json({ success: false, message: 'Password must be at least 4 characters' });
+    }
+    const salt = await bcrypt.genSalt(10);
+    const passwordHash = await bcrypt.hash(newPassword, salt);
+    await db.users.update({ username: targetUsername }, { passwordHash });
+    res.json({ success: true, message: `Password for ${targetUsername} updated successfully` });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
 export default router;
