@@ -41,7 +41,7 @@ namespace AuthApp
         public LoginForm()
         {
             // Initialize AuthClient with Backend URL and User's Application ID
-            _authClient = new AuthClient("https://br-auth-backend-production.up.railway.app", "ildesyibdmr7l6fmx");
+            _authClient = new AuthClient("https://br-auth-backend-production.up.railway.app", "i6e6orcvmmrahdev1");
             
             InitializeFormStyle();
             CreateCustomUI();
