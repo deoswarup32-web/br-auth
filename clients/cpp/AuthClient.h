@@ -14,11 +14,10 @@ private:
     std::string appId;
     std::string sessionToken;
 
-    // Helper to send HTTP POST requests using Windows native WinINet
     std::string SendPostRequest(const std::string& endpoint, const std::string& jsonPayload) {
         std::string response = "";
         HINTERNET hSession = InternetOpenA("AuthClient", INTERNET_OPEN_TYPE_DIRECT, NULL, NULL, 0);
-        if (!hSession) return "{\"success\":false,\"message\":\"Failed to open internet session\"}";
+        if (!hSession) return "{\"success\":false,\"message\":\"Failed to open internet session: " + std::to_string(GetLastError()) + "\"}";
 
         // Parse host and port from apiUrl
         std::string host = "";
@@ -59,7 +58,7 @@ private:
         HINTERNET hConnect = InternetConnectA(hSession, host.c_str(), port, NULL, NULL, INTERNET_SERVICE_HTTP, 0, 0);
         if (!hConnect) {
             InternetCloseHandle(hSession);
-            return "{\"success\":false,\"message\":\"Connection failed\"}";
+            return "{\"success\":false,\"message\":\"Connection failed: " + std::to_string(GetLastError()) + "\"}";
         }
 
         DWORD flags = INTERNET_FLAG_RELOAD | INTERNET_FLAG_NO_CACHE_WRITE;
@@ -71,7 +70,20 @@ private:
         if (!hRequest) {
             InternetCloseHandle(hConnect);
             InternetCloseHandle(hSession);
-            return "{\"success\":false,\"message\":\"Request creation failed\"}";
+            return "{\"success\":false,\"message\":\"Request creation failed: " + std::to_string(GetLastError()) + "\"}";
+        }
+
+        // Apply strict SSL verification bypass options to prevent Windows CA certificate errors
+        if (isHttps) {
+            DWORD dwFlags = 0;
+            DWORD dwBuffSize = sizeof(dwFlags);
+            InternetQueryOptionA(hRequest, INTERNET_OPTION_SECURITY_FLAGS, &dwFlags, &dwBuffSize);
+            dwFlags |= SECURITY_FLAG_IGNORE_UNKNOWN_CA | 
+                       SECURITY_FLAG_IGNORE_WRONG_USAGE | 
+                       SECURITY_FLAG_IGNORE_CERT_CN_INVALID | 
+                       SECURITY_FLAG_IGNORE_CERT_DATE_INVALID | 
+                       SECURITY_FLAG_IGNORE_REVOCATION;
+            InternetSetOptionA(hRequest, INTERNET_OPTION_SECURITY_FLAGS, &dwFlags, sizeof(dwFlags));
         }
 
         std::string headers = "Content-Type: application/json\r\n";
@@ -86,7 +98,7 @@ private:
             }
         }
         else {
-            response = "{\"success\":false,\"message\":\"Sending request failed\"}";
+            response = "{\"success\":false,\"message\":\"Sending request failed: " + std::to_string(GetLastError()) + "\"}";
         }
 
         InternetCloseHandle(hRequest);
