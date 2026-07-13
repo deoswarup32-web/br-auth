@@ -264,8 +264,9 @@ export default function App() {
 
   const handleToggleUserStatus = async (userId, currentStatus) => {
     const nextStatus = currentStatus === 'active' ? 'blocked' : 'active';
+    const endpoint = user.role === 'seller' ? '/api/seller/reseller/status' : '/api/admin/user/status';
     try {
-      const data = await apiFetch('/api/admin/user/status', {
+      const data = await apiFetch(endpoint, {
         method: 'PATCH',
         body: JSON.stringify({ userId, status: nextStatus })
       });
@@ -278,8 +279,9 @@ export default function App() {
 
   const handleDeleteUser = async (userId) => {
     if (!confirm('Are you sure you want to delete this user? All credentials associated will be wiped.')) return;
+    const endpoint = user.role === 'seller' ? `/api/seller/reseller/${userId}` : `/api/admin/user/${userId}`;
     try {
-      const data = await apiFetch(`/api/admin/user/${userId}`, { method: 'DELETE' });
+      const data = await apiFetch(endpoint, { method: 'DELETE' });
       if (data.success) {
         showToast('User account deleted');
         fetchDashboardData();

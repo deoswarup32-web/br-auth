@@ -358,4 +358,58 @@ router.get('/reseller-credits', async (req, res) => {
   }
 });
 
+// Update/Toggle reseller status (block/unblock) - only reseller created by this seller
+router.patch('/reseller/status', async (req, res) => {
+  const { userId, status } = req.body;
+
+  if (!userId || !['active', 'blocked'].includes(status)) {
+    return res.status(400).json({ success: false, message: 'Invalid parameters' });
+  }
+
+  try {
+    const targetUser = await db.users.findOne({ id: userId });
+    if (!targetUser) {
+      return res.status(404).json({ success: false, message: 'Reseller not found' });
+    }
+
+    if (req.user.role !== 'admin' && targetUser.createdBy !== req.user.username) {
+      return res.status(403).json({ success: false, message: 'Access denied: You did not create this reseller' });
+    }
+
+    await db.users.update({ id: userId }, { status });
+    res.json({ success: true, message: `Reseller status changed to ${status}` });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// Delete a reseller created by this seller
+router.delete('/reseller/:id', async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const targetUser = await db.users.findOne({ id });
+    if (!targetUser) {
+      return res.status(404).json({ success: false, message: 'Reseller not found' });
+    }
+
+    if (req.user.role !== 'admin' && targetUser.createdBy !== req.user.username) {
+      return res.status(403).json({ success: false, message: 'Access denied: You did not create this reseller' });
+    }
+
+    // Delete the reseller user
+    await db.users.delete({ id });
+    // Clean up their credits
+    await db.credits.delete({ resellerUsername: targetUser.username.toLowerCase() });
+    // Clean up keys created by them
+    await db.keys.delete({ createdBy: targetUser.username });
+    // Clean up client users created by them
+    await db.users.delete({ createdBy: targetUser.username });
+
+    res.json({ success: true, message: 'Reseller and all associated data deleted successfully' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
 export default router;
