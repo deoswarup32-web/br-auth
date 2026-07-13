@@ -255,4 +255,26 @@ router.patch('/user/password', async (req, res) => {
   }
 });
 
+// Delete a key created by this reseller (along with its registered user account)
+router.delete('/key/:id', async (req, res) => {
+  const { id } = req.params;
+  try {
+    const key = await db.keys.findOne({ id });
+    if (!key) {
+      return res.status(404).json({ success: false, message: 'Key not found' });
+    }
+    if (key.createdBy !== req.user.username) {
+      return res.status(403).json({ success: false, message: 'Access denied: You do not own this key' });
+    }
+    // Delete user registered with this key if active
+    if (key.isUsed && key.usedBy) {
+      await db.users.delete({ username: key.usedBy });
+    }
+    await db.keys.delete({ id });
+    res.json({ success: true, message: 'Key and its associated user account deleted successfully' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
 export default router;

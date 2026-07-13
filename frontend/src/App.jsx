@@ -436,7 +436,8 @@ export default function App() {
   const handleDeleteKey = async (keyId) => {
     if (!confirm('Are you sure you want to delete this license key? The user using this key will be deleted.')) return;
     try {
-      const data = await apiFetch(`/api/seller/key/${keyId}`, { method: 'DELETE' });
+      const endpoint = user.role === 'reseller' ? `/api/reseller/key/${keyId}` : `/api/seller/key/${keyId}`;
+      const data = await apiFetch(endpoint, { method: 'DELETE' });
       if (data.success) {
         showToast('License key deleted');
         fetchDashboardData();
